@@ -6,10 +6,11 @@ export default function MypageLayout() {
       screenOptions={{
         headerStyle: { backgroundColor: '#2AC1BC' },
         headerTintColor: '#fff',
+        headerTitleStyle: { fontWeight: 'bold' },
       }}
     >
-      <Stack.Screen name="index" options={{ headerShown: false }} />
-      <Stack.Screen name="support" options={{ title: '고객센터' }} />
+      <Stack.Screen name="index" options={{ title: '마이 배민' }} />
+      <Stack.Screen name="support" options={{ headerShown: false }} />
     </Stack>
   );
 }

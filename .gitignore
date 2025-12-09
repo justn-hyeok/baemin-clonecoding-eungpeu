@@ -1,3 +1,5 @@
 .idea/
 .serena/
 node_modules
+screenshot/
+.expo

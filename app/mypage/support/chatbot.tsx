@@ -1,5 +1,8 @@
-import { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, Pressable, FlatList, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
+import styled from '@emotion/native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 interface Message {
   id: string;
@@ -9,11 +12,15 @@ interface Message {
 
 export default function ChatbotScreen() {
   const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: '안녕하세요! 배민 AI 상담사입니다. 무엇을 도와드릴까요?', isUser: false },
+    { id: '1', text: '안녕하세요! 무엇을 도와드릴까요?', isUser: false },
+    { id: '2', text: '배민 페이 등록은 어떻게 하나요?', isUser: true },
+    { id: '3', text: '마이페이지 > 배민페이 관리에서 등록하실 수 있습니다.', isUser: false },
   ]);
   const [input, setInput] = useState('');
+  const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (!input.trim()) return;
 
     const userMessage: Message = {
@@ -25,103 +32,116 @@ export default function ChatbotScreen() {
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
 
-    // TODO: Supabase Edge Function 연동
+    // Scroll to bottom
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    // Mock AI response for now
     setTimeout(() => {
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
-        text: '죄송합니다. 현재 챗봇 기능을 준비 중입니다.',
+        text: '현재 AI 챗봇 기능을 준비 중입니다. 잠시만 기다려주세요.',
         isUser: false,
       };
       setMessages((prev) => [...prev, botMessage]);
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }, 1000);
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={100}
-    >
-      <FlatList
+    <Container behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+      <MessageList
+        ref={flatListRef}
         data={messages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <View style={[styles.messageBubble, item.isUser ? styles.userBubble : styles.botBubble]}>
-            <Text style={[styles.messageText, item.isUser && styles.userText]}>{item.text}</Text>
-          </View>
+          <BubbleWrapper isUser={item.isUser}>
+            <Bubble isUser={item.isUser}>
+              <MessageText isUser={item.isUser}>{item.text}</MessageText>
+            </Bubble>
+          </BubbleWrapper>
         )}
-        contentContainerStyle={styles.messageList}
+        contentContainerStyle={{ paddingBottom: 20, paddingTop: 16 }}
+        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          value={input}
-          onChangeText={setInput}
-          placeholder="메시지를 입력하세요..."
-          placeholderTextColor="#999"
-          onSubmitEditing={sendMessage}
-        />
-        <Pressable style={styles.sendButton} onPress={sendMessage}>
-          <Text style={styles.sendButtonText}>전송</Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+      <InputContainer style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }}>
+        <InputWrapper>
+          <StyledInput
+            value={input}
+            onChangeText={setInput}
+            placeholder="메시지를 입력하세요"
+            placeholderTextColor="#999"
+            multiline
+            maxLength={200}
+          />
+          <SendButton onPress={sendMessage} disabled={!input.trim()}>
+            <Ionicons name="send" size={20} color={input.trim() ? '#2AC1BC' : '#ddd'} />
+          </SendButton>
+        </InputWrapper>
+      </InputContainer>
+    </Container>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  messageList: {
-    padding: 16,
-  },
-  messageBubble: {
-    maxWidth: '80%',
-    padding: 12,
-    borderRadius: 16,
-    marginBottom: 8,
-  },
-  userBubble: {
-    alignSelf: 'flex-end',
-    backgroundColor: '#2AC1BC',
-  },
-  botBubble: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#fff',
-  },
-  messageText: {
-    fontSize: 16,
-    lineHeight: 22,
-  },
-  userText: {
-    color: '#fff',
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderTopWidth: 1,
-    borderTopColor: '#e0e0e0',
-  },
-  input: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#f5f5f5',
-    borderRadius: 20,
-    fontSize: 16,
-  },
-  sendButton: {
-    marginLeft: 8,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
-    backgroundColor: '#2AC1BC',
-    borderRadius: 20,
-  },
-  sendButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-});
+const Container = styled.KeyboardAvoidingView`
+  flex: 1;
+  background-color: #fff;
+`;
+
+const MessageList = styled.FlatList`
+  flex: 1;
+  padding: 0 16px;
+` as unknown as typeof FlatList;
+
+const BubbleWrapper = styled.View<{ isUser: boolean }>`
+  flex-direction: row;
+  justify-content: ${(props) => (props.isUser ? 'flex-end' : 'flex-start')};
+  margin-bottom: 12px;
+`;
+
+const Bubble = styled.View<{ isUser: boolean }>`
+  background-color: ${(props) => (props.isUser ? '#2AC1BC' : '#F2F3F6')};
+  padding: 12px 16px;
+  border-radius: 20px;
+  border-top-left-radius: ${(props) => (!props.isUser ? '4px' : '20px')};
+  border-top-right-radius: ${(props) => (props.isUser ? '4px' : '20px')};
+  max-width: 80%;
+`;
+
+const MessageText = styled.Text<{ isUser: boolean }>`
+  color: ${(props) => (props.isUser ? '#fff' : '#000')};
+  font-size: 16px;
+  line-height: 22px;
+`;
+
+const InputContainer = styled.View`
+  background-color: #fff;
+  border-top-width: 1px;
+  border-top-color: #f0f0f0;
+  padding: 12px 16px;
+`;
+
+const InputWrapper = styled.View`
+  flex-direction: row;
+  align-items: center;
+  background-color: #F8F9FA;
+  border-radius: 24px;
+  padding: 8px 16px;
+  min-height: 48px;
+`;
+
+const StyledInput = styled.TextInput`
+  flex: 1;
+  font-size: 16px;
+  color: #333;
+  padding-top: 0;
+  padding-bottom: 0;
+  max-height: 100px;
+`;
+
+const SendButton = styled.Pressable`
+  margin-left: 8px;
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+`;

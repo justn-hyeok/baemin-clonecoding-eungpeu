@@ -29,7 +29,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     fontSize: 48,
-    fontWeight: 'bold',
+    fontWeight: '700',
     color: '#fff',
   },
   subtitle: {
