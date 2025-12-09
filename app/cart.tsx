@@ -1,13 +1,10 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
 
-export default function MenuDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-
+export default function CartScreen() {
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>메뉴 상세</Text>
-      <Text>Menu ID: {id}</Text>
+      <Text style={styles.title}>장바구니</Text>
+      <Text style={styles.empty}>장바구니가 비어있습니다</Text>
     </View>
   );
 }
@@ -21,6 +18,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
+  },
+  empty: {
+    color: '#999',
+    textAlign: 'center',
+    marginTop: 40,
   },
 });
