@@ -57,11 +57,11 @@ export default function HomeScreen() {
               <Text style={{ color: '#fff', fontSize: 17, fontWeight: '700' }}>경남 김해시 주촌면 천곡로 26</Text>
               <Ionicons name="chevron-down" size={18} color="#fff" style={{ marginLeft: 4 }} />
             </TouchableOpacity>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
-              <TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <TouchableOpacity style={{ marginRight: 16 }}>
                 <MaterialCommunityIcons name="percent-circle-outline" size={26} color="#fff" />
               </TouchableOpacity>
-              <TouchableOpacity>
+              <TouchableOpacity style={{ marginRight: 16 }}>
                 <Ionicons name="notifications-outline" size={26} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity onPress={() => router.push('/cart')}>
@@ -98,13 +98,6 @@ export default function HomeScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Tab Menu */}
         <View style={{ backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#eee' }}>
-          {/* 빽다방 선착순 배지 */}
-          <View style={{ alignItems: 'center', paddingTop: 8 }}>
-            <View style={{ backgroundColor: '#f5f5f5', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 }}>
-              <Text style={{ fontSize: 11, color: '#666', fontWeight: '500' }}>빽다방 선착순</Text>
-            </View>
-          </View>
-
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 8 }}>
             {tabs.map((tab) => {
               const isActive = activeTab === tab;
@@ -166,22 +159,12 @@ export default function HomeScreen() {
 
         {/* Mart Section */}
         <View style={{ paddingVertical: 24 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
             {marts.map((mart, index) => (
-              <TouchableOpacity key={index} style={{ alignItems: 'center', width: 72 }}>
-                <View style={{ position: 'relative', marginBottom: 8 }}>
-                  {/* 배지 */}
-                  {mart.badge && (
-                    <View style={{ position: 'absolute', top: -10, left: '50%', transform: [{ translateX: -20 }], backgroundColor: mart.badgeColor, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 8, zIndex: 1 }}>
-                      <Text style={{ fontSize: 9, color: '#fff', fontWeight: '700' }}>{mart.badge}</Text>
-                    </View>
-                  )}
-                  {/* 로고 원형 */}
+              <TouchableOpacity key={index} style={{ alignItems: 'center', width: 72, marginRight: 12 }}>
+                <View style={{ marginBottom: 8 }}>
                   <View style={{ width: 64, height: 64, backgroundColor: mart.color, borderRadius: 32, justifyContent: 'center', alignItems: 'center' }}>
                     <Text style={{ color: mart.textColor, fontSize: mart.text.length > 3 ? 11 : 16, fontWeight: '700' }}>{mart.text}</Text>
-                    {mart.subText && (
-                      <Text style={{ color: mart.textColor, fontSize: 8, marginTop: 2 }}>{mart.subText}</Text>
-                    )}
                   </View>
                 </View>
                 <Text style={{ fontSize: 12, color: '#333', textAlign: 'center' }}>{mart.label}</Text>

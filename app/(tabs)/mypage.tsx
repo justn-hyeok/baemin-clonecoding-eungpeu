@@ -68,7 +68,7 @@ export default function MypageScreen() {
             <ClubContent>
               <ClubTitle>4,990원에 무료배달+콘텐츠까지!</ClubTitle>
               <ClubSubtitle>
-                지금만 가입 즉시 <Text style={{ color: '#2AC1BC', fontWeight: 'bold' }}>4,990원</Text> 포인트 드려요
+                지금만 가입 즉시 <Text style={{ color: '#2AC1BC', fontWeight: '700' }}>4,990원</Text> 포인트 드려요
               </ClubSubtitle>
               <ClubButton>
                 <ClubButtonText>혜택 받고 가입하기</ClubButtonText>
@@ -97,7 +97,7 @@ export default function MypageScreen() {
               <AssetLeft>
                 <AssetIconContainer>
                   <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFD700', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>P</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 14 }}>P</Text>
                   </View>
                 </AssetIconContainer>
                 <AssetText>포인트</AssetText>
@@ -125,7 +125,7 @@ export default function MypageScreen() {
               <AssetLeft>
                 <AssetIconContainer>
                   <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#FFA500', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 10 }}>Pay</Text>
+                    <Text style={{ color: '#fff', fontWeight: '700', fontSize: 10 }}>Pay</Text>
                   </View>
                 </AssetIconContainer>
                 <View style={{ marginLeft: 0 }}>

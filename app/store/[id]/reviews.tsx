@@ -159,14 +159,15 @@ export default function StoreReviewsScreen() {
   const [replyText, setReplyText] = useState('');
   const [replyingToReviewId, setReplyingToReviewId] = useState<string | null>(null);
   const [isNoticeExpanded, setIsNoticeExpanded] = useState(true);
+  const [localReviews, setLocalReviews] = useState<Review[]>(MOCK_REVIEWS);
 
   // Fetch reviews from Supabase
   const { reviews: supabaseReviews, loading, addReply: supabaseAddReply } = useReviews(id || '');
 
-  // Use Supabase data if available, otherwise fallback to mock data
+  // Use Supabase data if available, otherwise fallback to local mock data
   const displayReviews: Review[] = supabaseReviews.length > 0
     ? supabaseReviews.map(toDisplayReview)
-    : MOCK_REVIEWS;
+    : localReviews;
 
   const handleAddReply = async (reviewId: string) => {
     if (!replyText.trim()) return;
@@ -174,6 +175,26 @@ export default function StoreReviewsScreen() {
     // Try to add reply via Supabase
     if (supabaseReviews.length > 0) {
       await supabaseAddReply(reviewId, replyText);
+    } else {
+      // Add reply locally for mock data
+      setLocalReviews(prev => prev.map(review => {
+        if (review.id === reviewId) {
+          return {
+            ...review,
+            replies: [
+              ...review.replies,
+              {
+                id: `local-${Date.now()}`,
+                isOwner: false,
+                author: '나',
+                date: '방금',
+                content: replyText,
+              }
+            ]
+          };
+        }
+        return review;
+      }));
     }
 
     setReplyText('');

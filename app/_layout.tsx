@@ -1,14 +1,13 @@
 import { Stack } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { colors } from '../constants/theme';
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.primary },
-          headerTintColor: colors.textInverse,
+          headerStyle: { backgroundColor: '#2AC1BC' },
+          headerTintColor: '#FFFFFF',
           headerTitleStyle: { fontWeight: '700' },
         }}
       >
