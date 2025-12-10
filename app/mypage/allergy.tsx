@@ -100,6 +100,12 @@ export default function AllergyScreen() {
               알레르기를 설정하면 메뉴에서 해당 성분이 포함된 음식에 경고가 표시됩니다.
             </InfoText>
           </InfoBanner>
+            <WarningNotice>
+                <Ionicons name="warning" size={16} color="#ff6b6b" />
+                <WarningText>
+                    알레르기 정보는 참고용이며, 정확한 성분은 가게에 직접 문의해주세요.
+                </WarningText>
+            </WarningNotice>
 
           {/* Selected Count */}
           <SelectedCountContainer>
@@ -133,12 +139,7 @@ export default function AllergyScreen() {
           </AllergenList>
 
           {/* Warning Notice */}
-          <WarningNotice>
-            <Ionicons name="warning" size={16} color="#ff6b6b" />
-            <WarningText>
-              알레르기 정보는 참고용이며, 정확한 성분은 가게에 직접 문의해주세요.
-            </WarningText>
-          </WarningNotice>
+
 
           <BottomSpacer />
         </ScrollView>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   ScrollView,
   Dimensions,
@@ -9,20 +9,22 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import styled from '@emotion/native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCartStore } from '../../../../store/cartStore';
-import { useUserStore } from '../../../../store/userStore';
+
+const ALLERGY_STORAGE_KEY = '@baemin_allergies';
 
 const { width } = Dimensions.get('window');
 
 // Mock Data
 const MOCK_MENU = {
   menuId: 'menu-001',
-  name: '김치볶음밥',
-  price: 5900,
+  name: '한우 대창 떡볶이',
+  price: 18900,
   image: 'https://images.unsplash.com/photo-1512058564366-18510be2db19?w=400',
-  allergies: ['계란', '대두'],
-  tags: ['인기 3위', '사장님 추천'],
-  reviews: 8,
+  allergies: ['계란', '대두', '쇠고기'],
+  tags: ['인기 1위', '사장님 추천'],
+  reviews: 5,
 };
 
 const MOCK_STORE = {
@@ -39,12 +41,27 @@ export default function MenuDetailScreen() {
   const [quantity, setQuantity] = useState(1);
   const [showToast, setShowToast] = useState(false);
   const [toastAnim] = useState(new Animated.Value(0));
+  const [userAllergies, setUserAllergies] = useState<string[]>([]);
 
   const addItem = useCartStore((state) => state.addItem);
   const getItemCount = useCartStore((state) => state.getItemCount);
-  const getAllergyMatches = useUserStore((state) => state.getAllergyMatches);
 
-  const matchedAllergies = getAllergyMatches(MOCK_MENU.allergies);
+  // 로컬 저장소에서 알러지 로드
+  useEffect(() => {
+    const loadAllergies = async () => {
+      try {
+        const saved = await AsyncStorage.getItem(ALLERGY_STORAGE_KEY);
+        if (saved) {
+          setUserAllergies(JSON.parse(saved));
+        }
+      } catch (error) {
+        console.error('알레르기 로드 실패:', error);
+      }
+    };
+    loadAllergies();
+  }, []);
+
+  const matchedAllergies = MOCK_MENU.allergies.filter(a => userAllergies.includes(a));
   const totalPrice = MOCK_MENU.price * quantity;
 
   const showToastMessage = () => {

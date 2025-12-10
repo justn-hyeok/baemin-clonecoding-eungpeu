@@ -81,7 +81,7 @@ export default function HomeScreen() {
           {/* Event Banner */}
           <View style={{ marginHorizontal: 16, marginBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 4 }}>황가네님 주목!</Text>
+              <Text style={{ fontSize: 20, fontWeight: '700', color: '#000', marginBottom: 4 }}>서명균님 주목!</Text>
               <Text style={{ fontSize: 15, color: '#000', marginBottom: 12 }}>총 4천원 할인 당첨되셨어요</Text>
               <TouchableOpacity style={{ backgroundColor: '#000', paddingVertical: 10, paddingHorizontal: 14, borderRadius: 20, flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start' }}>
                 <Text style={{ color: '#fff', fontSize: 13, fontWeight: '600' }}>배민클럽 가입하고 받기</Text>

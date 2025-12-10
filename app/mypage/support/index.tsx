@@ -43,7 +43,7 @@ export default function SupportScreen() {
             {/* Header */}
             <HeaderSection>
           <Greeting>
-            <UserName>황가네</UserName>
+            <UserName>서명균</UserName>
             <NormalText>님</NormalText>
           </Greeting>
           <SubTitle>무엇을 도와드릴까요?</SubTitle>

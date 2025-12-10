@@ -1,4 +1,5 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+// 개새끼야 왜 안됨?
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -69,7 +70,7 @@ serve(async (req) => {
 - 이모지 적절히 사용 (과하지 않게)
 - 핵심 먼저, 부가설명은 나중에
 - 번호 매기기로 단계 구분 (1. 2. 3.)
-- 최대 5문장 이내로 핵심만
+- 필요하면 상세하게 설명해도 됨 (길이 제한 없음)
 - **마크다운 금지**: 볼드(**), 이탤릭(*), 헤딩(#), 링크 등 서식 사용하지 마세요
 - 일반 텍스트로만 답변하세요
 
@@ -111,7 +112,7 @@ serve(async (req) => {
             parts: [{ text: systemPrompt }],
           },
           generationConfig: {
-            maxOutputTokens: 1024,
+            maxOutputTokens: 7000,
             temperature: 0.7,
           },
         }),

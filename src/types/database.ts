@@ -134,7 +134,7 @@ export type User = Database['public']['Tables']['users']['Row'];
 
 // Extended types with relations
 export interface ReviewWithReplies extends Review {
-  replies?: Review[];
+  replies?: ReviewWithReplies[];
   user?: User;
 }
 

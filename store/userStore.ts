@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const ALLERGY_STORAGE_KEY = '@baemin_allergies';
 
 export interface AllergyItem {
   id: string;
@@ -27,6 +30,8 @@ export const ALLERGY_LIST: AllergyItem[] = [
 
 interface UserState {
   allergies: string[];
+  isLoaded: boolean;
+  loadAllergies: () => Promise<void>;
   setAllergies: (allergies: string[]) => void;
   toggleAllergy: (allergyName: string) => void;
   hasAllergy: (allergyName: string) => boolean;
@@ -35,6 +40,21 @@ interface UserState {
 
 export const useUserStore = create<UserState>((set, get) => ({
   allergies: [],
+  isLoaded: false,
+
+  loadAllergies: async () => {
+    try {
+      const saved = await AsyncStorage.getItem(ALLERGY_STORAGE_KEY);
+      if (saved) {
+        set({ allergies: JSON.parse(saved), isLoaded: true });
+      } else {
+        set({ isLoaded: true });
+      }
+    } catch (error) {
+      console.error('알레르기 로드 실패:', error);
+      set({ isLoaded: true });
+    }
+  },
 
   setAllergies: (allergies) => {
     set({ allergies });
@@ -58,3 +78,6 @@ export const useUserStore = create<UserState>((set, get) => ({
     return menuAllergies.filter((a) => allergies.includes(a));
   },
 }));
+
+// 앱 시작 시 자동 로드
+useUserStore.getState().loadAllergies();

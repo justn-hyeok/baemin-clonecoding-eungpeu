@@ -117,6 +117,9 @@ const MOCK_REVIEWS: Review[] = [
   },
 ];
 
+// 사장님 유저 ID (실제로는 store 테이블에서 owner_id 가져와야 함)
+const OWNER_USER_ID = 'aaaaaaaa-0000-0000-0000-000000000001';
+
 // Convert Supabase review to display format
 const toDisplayReview = (review: ReviewWithReplies): Review => ({
   id: review.id,
@@ -131,7 +134,7 @@ const toDisplayReview = (review: ReviewWithReplies): Review => ({
   images: [],
   replies: (review.replies || []).map(reply => ({
     id: reply.id,
-    isOwner: false, // Would need to check against store owner
+    isOwner: reply.user_id === OWNER_USER_ID || reply.user?.name === '사장님',
     author: reply.user?.name || '익명',
     date: formatDate(reply.created_at),
     content: reply.content,
@@ -152,6 +155,11 @@ const formatDate = (dateString: string): string => {
   return `${Math.floor(diffDays / 365)}년 전`;
 };
 
+// 테스트용 게스트 유저 ID (실제 앱에서는 로그인 시스템에서 가져옴)
+const GUEST_USER_ID = 'aaaaaaaa-0000-0000-0000-000000000004';
+// 테스트용 가게 ID (Supabase에 데이터 있는 가게)
+const TEST_STORE_ID = '11111111-1111-1111-1111-111111111111';
+
 export default function StoreReviewsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -161,8 +169,11 @@ export default function StoreReviewsScreen() {
   const [isNoticeExpanded, setIsNoticeExpanded] = useState(true);
   const [localReviews, setLocalReviews] = useState<Review[]>(MOCK_REVIEWS);
 
-  // Fetch reviews from Supabase
-  const { reviews: supabaseReviews, loading, addReply: supabaseAddReply } = useReviews(id || '');
+  // storeId: 동적 id 사용하되, mock 데이터 테스트용으로 TEST_STORE_ID fallback
+  const storeId = id || TEST_STORE_ID;
+
+  // Fetch reviews from Supabase (with userId for replies)
+  const { reviews: supabaseReviews, loading, error, addReply: supabaseAddReply, refetch } = useReviews(storeId, GUEST_USER_ID);
 
   // Use Supabase data if available, otherwise fallback to local mock data
   const displayReviews: Review[] = supabaseReviews.length > 0

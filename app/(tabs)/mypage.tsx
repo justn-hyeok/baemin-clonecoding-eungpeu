@@ -43,7 +43,7 @@ export default function MypageScreen() {
             <SparkleIcon style={{ bottom: 0, left: -10 }}>✨</SparkleIcon>
           </AvatarContainer>
           <ProfileNameRow>
-            <ProfileName>황가네</ProfileName>
+            <ProfileName>서명균</ProfileName>
             <MaterialCommunityIcons name="pencil" size={14} color="#ccc" style={{ marginLeft: 4 }} />
           </ProfileNameRow>
           <StickerButton>

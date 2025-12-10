@@ -56,6 +56,15 @@ export function useReviews(storeId: string, userId?: string): UseReviewsResult {
         }
       });
 
+      // Sort replies by created_at ascending (oldest first, so new replies appear at bottom)
+      topLevelReviews.forEach(review => {
+        if (review.replies && review.replies.length > 0) {
+          review.replies.sort((a, b) =>
+            new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+          );
+        }
+      });
+
       setReviews(topLevelReviews);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch reviews');
