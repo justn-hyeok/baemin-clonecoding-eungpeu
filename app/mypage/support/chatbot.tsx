@@ -1,57 +1,51 @@
-import React, { useState, useRef } from 'react';
-import { FlatList, KeyboardAvoidingView, Platform, View } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import { FlatList, KeyboardAvoidingView, Platform, View, ActivityIndicator } from 'react-native';
 import styled from '@emotion/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useChatbot } from '../../../src/hooks/useChatbot';
 
-interface Message {
+interface DisplayMessage {
   id: string;
   text: string;
   isUser: boolean;
 }
 
 export default function ChatbotScreen() {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: '1', text: '안녕하세요! 무엇을 도와드릴까요?', isUser: false },
-    { id: '2', text: '배민 페이 등록은 어떻게 하나요?', isUser: true },
-    { id: '3', text: '마이페이지 > 배민페이 관리에서 등록하실 수 있습니다.', isUser: false },
-  ]);
-  const [input, setInput] = useState('');
+  const { messages, loading, sendMessage: sendChatMessage } = useChatbot();
+  const [input, setInput] = React.useState('');
   const flatListRef = useRef<FlatList>(null);
   const insets = useSafeAreaInsets();
 
-  const sendMessage = () => {
-    if (!input.trim()) return;
+  // Convert hook messages to display format
+  const displayMessages: DisplayMessage[] = [
+    { id: 'welcome', text: '안녕하세요! 무엇을 도와드릴까요? 😊', isUser: false },
+    ...messages.map((msg, index) => ({
+      id: `msg-${index}`,
+      text: msg.content,
+      isUser: msg.role === 'user',
+    })),
+  ];
 
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text: input,
-      isUser: true,
-    };
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+  }, [messages]);
 
-    setMessages((prev) => [...prev, userMessage]);
+  const handleSendMessage = async () => {
+    if (!input.trim() || loading) return;
+
+    const messageText = input.trim();
     setInput('');
 
-    // Scroll to bottom
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-
-    // Mock AI response for now
-    setTimeout(() => {
-      const botMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: '현재 AI 챗봇 기능을 준비 중입니다. 잠시만 기다려주세요.',
-        isUser: false,
-      };
-      setMessages((prev) => [...prev, botMessage]);
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
-    }, 1000);
+    await sendChatMessage(messageText);
   };
 
   return (
     <Container behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
       <MessageList
         ref={flatListRef}
-        data={messages}
+        data={displayMessages}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <BubbleWrapper isUser={item.isUser}>
@@ -64,6 +58,13 @@ export default function ChatbotScreen() {
         onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
       />
 
+      {loading && (
+        <LoadingWrapper>
+          <ActivityIndicator size="small" color="#2AC1BC" />
+          <LoadingText>답변을 생성하고 있습니다...</LoadingText>
+        </LoadingWrapper>
+      )}
+
       <InputContainer style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 16 }}>
         <InputWrapper>
           <StyledInput
@@ -73,9 +74,10 @@ export default function ChatbotScreen() {
             placeholderTextColor="#999"
             multiline
             maxLength={200}
+            editable={!loading}
           />
-          <SendButton onPress={sendMessage} disabled={!input.trim()}>
-            <Ionicons name="send" size={20} color={input.trim() ? '#2AC1BC' : '#ddd'} />
+          <SendButton onPress={handleSendMessage} disabled={!input.trim() || loading}>
+            <Ionicons name="send" size={20} color={input.trim() && !loading ? '#2AC1BC' : '#ddd'} />
           </SendButton>
         </InputWrapper>
       </InputContainer>
@@ -112,6 +114,19 @@ const MessageText = styled.Text<{ isUser: boolean }>`
   color: ${(props) => (props.isUser ? '#fff' : '#000')};
   font-size: 16px;
   line-height: 22px;
+`;
+
+const LoadingWrapper = styled.View`
+  flex-direction: row;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+`;
+
+const LoadingText = styled.Text`
+  margin-left: 8px;
+  color: #666;
+  font-size: 14px;
 `;
 
 const InputContainer = styled.View`

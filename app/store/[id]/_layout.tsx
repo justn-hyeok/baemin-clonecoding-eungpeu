@@ -1,42 +1,12 @@
-import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 
-export default function StoreTabLayout() {
+export default function StoreLayout() {
   return (
-    <Tabs
-      screenOptions={{
-        tabBarActiveTintColor: '#2AC1BC',
-        tabBarStyle: { backgroundColor: '#fff' },
-        headerStyle: { backgroundColor: '#2AC1BC' },
-        headerTintColor: '#fff',
-      }}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: '메뉴',
-          tabBarLabel: '메뉴',
-        }}
-      />
-      <Tabs.Screen
-        name="info"
-        options={{
-          title: '정보',
-          tabBarLabel: '정보',
-        }}
-      />
-      <Tabs.Screen
-        name="reviews"
-        options={{
-          title: '리뷰',
-          tabBarLabel: '리뷰',
-        }}
-      />
-      <Tabs.Screen
-        name="menu/[menuId]"
-        options={{
-          href: null,
-        }}
-      />
-    </Tabs>
+    <Stack screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="index" />
+      <Stack.Screen name="info" />
+      <Stack.Screen name="reviews" />
+      <Stack.Screen name="menu/[menuId]" />
+    </Stack>
   );
 }

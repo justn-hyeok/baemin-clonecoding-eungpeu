@@ -11,6 +11,7 @@ export default function MypageLayout() {
     >
       <Stack.Screen name="index" options={{ title: '마이 배민' }} />
       <Stack.Screen name="support" options={{ headerShown: false }} />
+      <Stack.Screen name="allergy" options={{ headerShown: false }} />
     </Stack>
   );
 }

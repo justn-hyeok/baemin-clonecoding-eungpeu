@@ -1,17 +1,31 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Dimensions, Pressable, StatusBar as RNStatusBar } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useState, useCallback } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Dimensions, Pressable, StatusBar as RNStatusBar, ActivityIndicator } from 'react-native';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import styled from '@emotion/native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useMenus } from '../../../src/hooks/useMenus';
+import { useStore } from '../../../src/hooks/useStores';
+import { useAllergy } from '../../../src/hooks/useAllergy';
+import type { Menu as SupabaseMenu } from '../../../src/types/database';
 
 const { width } = Dimensions.get('window');
 
-// --- Mock Data ---
+// --- Types ---
+type MenuDisplay = {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  tags: string[];
+  allergies: string[];
+};
+
+// --- Mock Data (Fallback) ---
 
 const STORE_IMAGES = Array(3).fill(null); // 3 placeholder images
 
-const MENUS = [
+const MOCK_MENUS: MenuDisplay[] = [
   {
     id: '1',
     name: '한우 대창 떡볶이',
@@ -50,7 +64,7 @@ const MENUS = [
     description: '특제 소스로 볶아낸 감칠맛 나는 김치볶음밥',
     price: 8000,
     tags: [],
-    allergies: ['계란', '대두'],
+    allergies: ['계란', '대두', '갑각류'],
   },
   {
     id: '6',
@@ -102,6 +116,16 @@ const MENUS = [
   },
 ];
 
+// Convert Supabase menu to display format
+const toDisplayMenu = (menu: SupabaseMenu): MenuDisplay => ({
+  id: menu.id,
+  name: menu.name,
+  description: menu.description || '',
+  price: menu.price,
+  tags: [],
+  allergies: menu.allergies || [],
+});
+
 const REVIEWS = [
   { id: '1', rating: 5, text: '양도 많고 맛도 좋고 사장님도 매우매우 친절합니다. 😍 진짜 처음 먹어봐쓴ㄴ데...' },
   { id: '2', rating: 5, text: '떡이 아주 쫄깃하고 대창이 고소해요! 배달도 빨랐습니다.' },
@@ -117,6 +141,25 @@ export default function StoreDetailScreen() {
   const insets = useSafeAreaInsets();
   const [activeFilter, setActiveFilter] = useState('인기 메뉴');
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // 알레르기 설정 가져오기
+  const { allergies, shouldWarn, checkMenuAllergens, reload: reloadAllergies } = useAllergy();
+
+  // 화면 포커스될 때 알레르기 다시 로드
+  useFocusEffect(
+    useCallback(() => {
+      reloadAllergies();
+    }, [])
+  );
+
+  // Fetch data from Supabase
+  const { store } = useStore(id || '');
+  const { menus: supabaseMenus, loading: menusLoading } = useMenus(id || '');
+
+  // Use Supabase data if available, otherwise fallback to mock data
+  const displayMenus: MenuDisplay[] = supabaseMenus.length > 0
+    ? supabaseMenus.map(toDisplayMenu)
+    : MOCK_MENUS;
 
   const handleScroll = (event: any) => {
     const contentOffsetX = event.nativeEvent.contentOffset.x;
@@ -193,11 +236,16 @@ export default function StoreDetailScreen() {
           </StoreTitleRow>
 
           <RatingRow>
-            <Ionicons name="star" size={16} color="#FFD700" />
-            <RatingText>4.9<Text style={{ color: '#999', fontWeight: '400' }}>(211)</Text></RatingText>
-            <Ionicons name="chevron-forward" size={16} color="#999" />
+            <TouchableOpacity
+              onPress={() => router.push(`/store/${id}/reviews`)}
+              style={{ flexDirection: 'row', alignItems: 'center' }}
+            >
+              <Ionicons name="star" size={16} color="#FFD700" />
+              <RatingText>4.9<Text style={{ color: '#999', fontWeight: '400' }}>(211)</Text></RatingText>
+              <Ionicons name="chevron-forward" size={16} color="#999" />
+            </TouchableOpacity>
             <View style={{ flex: 1 }} />
-            <InfoButton>
+            <InfoButton onPress={() => router.push(`/store/${id}/info`)}>
               <InfoButtonText>가게정보·원산지</InfoButtonText>
             </InfoButton>
           </RatingRow>
@@ -249,19 +297,24 @@ export default function StoreDetailScreen() {
         <ReviewPreviewContainer>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, gap: 12 }}>
             {REVIEWS.map((review) => (
-              <ReviewCard key={review.id}>
-                <ReviewThumbnail />
-                <View style={{ flex: 1, paddingLeft: 12, justifyContent: 'center' }}>
-                  <View style={{ flexDirection: 'row' }}>
-                    {[...Array(5)].map((_, i) => (
-                      <Ionicons key={i} name="star" size={12} color="#FFD700" />
-                    ))}
+              <Pressable
+                key={review.id}
+                onPress={() => router.push(`/store/${id}/reviews`)}
+              >
+                <ReviewCard>
+                  <ReviewThumbnail />
+                  <View style={{ flex: 1, paddingLeft: 12, justifyContent: 'center' }}>
+                    <View style={{ flexDirection: 'row' }}>
+                      {[...Array(5)].map((_, i) => (
+                        <Ionicons key={i} name="star" size={12} color="#FFD700" />
+                      ))}
+                    </View>
+                    <Text numberOfLines={2} style={{ fontSize: 13, color: '#333', marginTop: 4, lineHeight: 18 }}>
+                      {review.text}
+                    </Text>
                   </View>
-                  <Text numberOfLines={2} style={{ fontSize: 13, color: '#333', marginTop: 4, lineHeight: 18 }}>
-                    {review.text}
-                  </Text>
-                </View>
-              </ReviewCard>
+                </ReviewCard>
+              </Pressable>
             ))}
           </ScrollView>
           {/* 6. Question Input */}
@@ -298,46 +351,51 @@ export default function StoreDetailScreen() {
             <MenuSubtitle>한 달간 주문수가 많고 만족도가 높은 메뉴예요.</MenuSubtitle>
           </MenuHeader>
 
-          {MENUS.map((menu) => (
-            <Pressable
-              key={menu.id}
-              onPress={() => router.push(`/store/${id}/menu/${menu.id}`)}
-              style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
-            >
-              <MenuCard>
-                <MenuInfo>
-                  {menu.tags.length > 0 && (
-                    <MenuTagRow>
-                      {menu.tags.map(tag => (
-                        <MenuTag key={tag}>
-                          <Text style={{ fontSize: 10, color: '#555', fontWeight: 'bold' }}>{tag}</Text>
-                        </MenuTag>
-                      ))}
-                    </MenuTagRow>
-                  )}
-                  <MenuName>{menu.name}</MenuName>
-                  <MenuDesc numberOfLines={1}>{menu.description}</MenuDesc>
-                  <MenuPrice>{menu.price.toLocaleString()}원</MenuPrice>
-                </MenuInfo>
-                <MenuImageContainer>
-                  <MenuImage />
-                  <AddButton>
-                    <Ionicons name="add" size={20} color="#333" />
-                  </AddButton>
-                </MenuImageContainer>
-              </MenuCard>
-            </Pressable>
-          ))}
+          {displayMenus.map((menu) => {
+            const hasAllergyWarning = shouldWarn(menu.allergies);
+            const matchedAllergens = checkMenuAllergens(menu.allergies);
+
+            return (
+              <Pressable
+                key={menu.id}
+                onPress={() => router.push(`/store/${id}/menu/${menu.id}`)}
+                style={({ pressed }) => ({ opacity: pressed ? 0.9 : 1 })}
+              >
+                <MenuCard>
+                  <MenuInfo>
+                    {menu.tags.length > 0 && (
+                      <MenuTagRow>
+                        {menu.tags.map(tag => (
+                          <MenuTag key={tag}>
+                            <Text style={{ fontSize: 10, color: '#555', fontWeight: 'bold' }}>{tag}</Text>
+                          </MenuTag>
+                        ))}
+                      </MenuTagRow>
+                    )}
+                    <MenuName>{menu.name}</MenuName>
+                    <MenuDesc numberOfLines={1}>{menu.description}</MenuDesc>
+                    <MenuPrice>{menu.price.toLocaleString()}원</MenuPrice>
+                    {hasAllergyWarning && (
+                      <AllergyBadge>
+                        <Ionicons name="alert-circle" size={14} color="#ff6b6b" />
+                        <AllergyBadgeText>{matchedAllergens.join(', ')}</AllergyBadgeText>
+                      </AllergyBadge>
+                    )}
+                  </MenuInfo>
+                  <MenuImageContainer>
+                    <MenuImage />
+                    <AddButton>
+                      <Ionicons name="add" size={20} color="#333" />
+                    </AddButton>
+                  </MenuImageContainer>
+                </MenuCard>
+              </Pressable>
+            );
+          })}
         </MenuSection>
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* 9. Bottom Fixed Banner */}
-      <BottomBanner style={{ paddingBottom: insets.bottom > 0 ? insets.bottom : 12 }}>
-        <MaterialCommunityIcons name="lightning-bolt" size={16} color="#fff" style={{ marginRight: 4 }} />
-        <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 14 }}>알뜰배달 선택 시 1,000원 즉시할인</Text>
-      </BottomBanner>
     </Container>
   );
 }
@@ -690,6 +748,19 @@ const MenuPrice = styled.Text`
   color: #000;
 `;
 
+const AllergyBadge = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-top: 8px;
+  gap: 4px;
+`;
+
+const AllergyBadgeText = styled.Text`
+  font-size: 12px;
+  color: #ff6b6b;
+  font-weight: 500;
+`;
+
 const MenuImageContainer = styled.View`
   position: relative;
 `;
@@ -718,16 +789,3 @@ const AddButton = styled.View`
   elevation: 3;
 `;
 
-const BottomBanner = styled.View`
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background-color: #2AC1BC;
-  padding-top: 12px;
-  padding-horizontal: 16px;
-  flex-direction: row;
-  justify-content: center;
-  align-items: flex-start;
-  z-index: 100;
-`;

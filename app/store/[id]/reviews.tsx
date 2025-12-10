@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView, Image } from 'react-native';
-import { Tabs, useRouter } from 'expo-router';
+import { View, Text, FlatList, TouchableOpacity, TextInput, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { Tabs, useRouter, useLocalSearchParams } from 'expo-router';
 import styled from '@emotion/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReviews } from '../../../src/hooks/useReviews';
+import type { ReviewWithReplies } from '../../../src/types/database';
 
 // --- Types ---
 interface Reply {
@@ -28,7 +30,7 @@ interface Review {
   replies: Reply[];
 }
 
-// --- Mock Data ---
+// --- Mock Data (Fallback) ---
 const MOCK_REVIEWS: Review[] = [
   {
     id: '1',
@@ -115,35 +117,65 @@ const MOCK_REVIEWS: Review[] = [
   },
 ];
 
+// Convert Supabase review to display format
+const toDisplayReview = (review: ReviewWithReplies): Review => ({
+  id: review.id,
+  author: review.user?.name || '익명',
+  reviewCount: 0,
+  avgRating: 4.5,
+  rating: review.rating || 5,
+  date: formatDate(review.created_at),
+  deliveryMethod: '알뜰배달',
+  content: review.content,
+  menuTag: '',
+  images: [],
+  replies: (review.replies || []).map(reply => ({
+    id: reply.id,
+    isOwner: false, // Would need to check against store owner
+    author: reply.user?.name || '익명',
+    date: formatDate(reply.created_at),
+    content: reply.content,
+  })),
+});
+
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return '오늘';
+  if (diffDays === 1) return '어제';
+  if (diffDays < 7) return `${diffDays}일 전`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}주일 전`;
+  if (diffDays < 365) return `${Math.floor(diffDays / 30)}개월 전`;
+  return `${Math.floor(diffDays / 365)}년 전`;
+};
+
 export default function StoreReviewsScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
-  const [reviews, setReviews] = useState<Review[]>(MOCK_REVIEWS);
   const [replyText, setReplyText] = useState('');
   const [replyingToReviewId, setReplyingToReviewId] = useState<string | null>(null);
   const [isNoticeExpanded, setIsNoticeExpanded] = useState(true);
 
-  const handleAddReply = (reviewId: string) => {
+  // Fetch reviews from Supabase
+  const { reviews: supabaseReviews, loading, addReply: supabaseAddReply } = useReviews(id || '');
+
+  // Use Supabase data if available, otherwise fallback to mock data
+  const displayReviews: Review[] = supabaseReviews.length > 0
+    ? supabaseReviews.map(toDisplayReview)
+    : MOCK_REVIEWS;
+
+  const handleAddReply = async (reviewId: string) => {
     if (!replyText.trim()) return;
 
-    setReviews(prev => prev.map(review => {
-      if (review.id === reviewId) {
-        return {
-          ...review,
-          replies: [
-            ...review.replies,
-            {
-              id: Date.now().toString(),
-              isOwner: false, // User reply
-              author: '나',
-              date: '방금',
-              content: replyText,
-            }
-          ]
-        };
-      }
-      return review;
-    }));
+    // Try to add reply via Supabase
+    if (supabaseReviews.length > 0) {
+      await supabaseAddReply(reviewId, replyText);
+    }
+
     setReplyText('');
     setReplyingToReviewId(null);
   };
@@ -252,7 +284,7 @@ export default function StoreReviewsScreen() {
       </Header>
 
       <FlatList
-        data={reviews}
+        data={displayReviews}
         keyExtractor={item => item.id}
         renderItem={renderReviewItem}
         ListHeaderComponent={

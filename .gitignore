@@ -3,3 +3,8 @@
 node_modules
 screenshot/
 .expo
+
+.mcp.json
+supabase_tmp
+supabase/.temp
+.env

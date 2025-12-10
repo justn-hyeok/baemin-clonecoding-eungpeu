@@ -1,24 +1,24 @@
 import { Stack } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { colors } from '../constants/theme';
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar style="auto" />
+    <SafeAreaProvider>
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: '#2AC1BC' },
-          headerTintColor: '#fff',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.textInverse,
           headerTitleStyle: { fontWeight: '700' },
         }}
       >
-        <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="splash" options={{ headerShown: false }} />
-        <Stack.Screen name="stores" options={{ title: '가게 목록' }} />
+        <Stack.Screen name="stores" options={{ headerShown: false }} />
         <Stack.Screen name="store/[id]" options={{ headerShown: false }} />
         <Stack.Screen name="cart" options={{ title: '장바구니' }} />
         <Stack.Screen name="mypage" options={{ headerShown: false }} />
       </Stack>
-    </>
+    </SafeAreaProvider>
   );
 }

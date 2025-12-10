@@ -1,8 +1,9 @@
 import React from 'react';
-import { ScrollView, Pressable, TextInput } from 'react-native';
+import { ScrollView, Pressable, TextInput, StatusBar } from 'react-native';
 import styled from '@emotion/native';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, Stack } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const FAQ_TAGS = [
   '배민클럽',
@@ -21,10 +22,26 @@ export default function SupportScreen() {
   const router = useRouter();
 
   return (
-    <Container>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <HeaderSection>
+    <>
+      <Stack.Screen options={{ headerShown: false }} />
+      <SafeAreaView style={{ flex: 1, backgroundColor: '#fff' }} edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
+        {/* Navigation Header */}
+        <NavHeader>
+          <BackButton onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </BackButton>
+          <NavTitle>고객센터</NavTitle>
+          <BackButton style={{ opacity: 0 }}>
+            <Ionicons name="arrow-back" size={24} color="#000" />
+          </BackButton>
+        </NavHeader>
+
+        <Container>
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <HeaderSection>
           <Greeting>
             <UserName>황가네</UserName>
             <NormalText>님</NormalText>
@@ -120,13 +137,33 @@ export default function SupportScreen() {
             <OtherItemText>약관 및 정책</OtherItemText>
             <Ionicons name="chevron-forward" size={20} color="#ccc" />
           </OtherItem>
-        </OtherSection>
-      </ScrollView>
-    </Container>
+          </OtherSection>
+        </ScrollView>
+      </Container>
+      </SafeAreaView>
+    </>
   );
 }
 
 // Styled Components
+const NavHeader = styled.View`
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: #fff;
+`;
+
+const BackButton = styled(Pressable)`
+  padding: 4px;
+`;
+
+const NavTitle = styled.Text`
+  font-size: 18px;
+  font-weight: 600;
+  color: #000;
+`;
+
 const Container = styled.View`
   flex: 1;
   background-color: #ffffff;

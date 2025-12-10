@@ -1,11 +1,21 @@
 import React from 'react';
-import { View, Text, ScrollView, FlatList, TouchableOpacity, StatusBar, SafeAreaView, Platform } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StatusBar, Platform, ActivityIndicator, Image, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import styled from '@emotion/native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome5, SimpleLineIcons } from '@expo/vector-icons';
+import { colors, spacing, fontSize, fontWeight, borderRadius } from '../../constants/theme';
+import { useStores } from '../../src/hooks/useStores';
+import type { Store as SupabaseStore } from '../../src/types/database';
 
 // --- Types ---
-type Store = {
+type MenuItem = {
+  name: string;
+  price: string;
+  image?: string;
+};
+
+type StoreDisplay = {
   id: string;
   name: string;
   rating: number;
@@ -17,13 +27,16 @@ type Store = {
   discountBadge?: string;
   tags: string[];
   imageColor: string;
+  menuItems: MenuItem[];
+  isAd?: boolean;
+  storeIcon?: string;
 };
 
-// --- Mock Data ---
+// --- Mock Data (Fallback) ---
 const CATEGORIES = ['홈', '치킨', '분식', '패스트푸드', '피자', '중식', '한식', '일식', '족발·보쌈', '야식'];
 const FILTERS = ['기본순', '무료배달', '즉시할인·쿠폰', '배달·픽업 선택'];
 
-const STORES: Store[] = [
+const MOCK_STORES: StoreDisplay[] = [
   {
     id: '1',
     name: '대창을품은떡볶이 김해점',
@@ -36,6 +49,12 @@ const STORES: Store[] = [
     discountBadge: '1,000원 즉시할인',
     tags: ['배민클럽', '예약가능'],
     imageColor: '#FF6B6B',
+    menuItems: [
+      { name: '한우 대창 떡볶이', price: '15,900원' },
+      { name: '떡볶이 + 순대 세트', price: '17,800원' },
+      { name: '김치볶음밥', price: '5,900원' },
+    ],
+    isAd: true,
   },
   {
     id: '2',
@@ -49,159 +68,293 @@ const STORES: Store[] = [
     discountBadge: '2,000원 즉시할인',
     tags: ['배민클럽', '픽업가능'],
     imageColor: '#4ECDC4',
+    menuItems: [
+      { name: '짜파구리', price: '10,000원' },
+      { name: '염통꼬치', price: '9,000원' },
+      { name: '반건조 오징어', price: '11,000원' },
+    ],
+    storeIcon: '🍺',
   },
   {
     id: '3',
-    name: 'BBQ치킨 김해점',
-    rating: 4.8,
-    reviewCount: 1542,
-    deliveryTime: '30~45분',
-    deliveryTip: '3,000원',
-    distance: '1.2km',
-    minOrder: '18,000원',
-    discountBadge: '3,000원 할인쿠폰',
+    name: '신전떡볶이 김해점',
+    rating: 4.6,
+    reviewCount: 89,
+    deliveryTime: '25~40분',
+    deliveryTip: '2,000원',
+    distance: '1.5km',
+    minOrder: '10,000원',
+    discountBadge: '1,000원 즉시할인',
     tags: ['배민클럽'],
     imageColor: '#FFD93D',
+    menuItems: [
+      { name: '쀼욱~늘어나는 모짜렐라...', price: '9,900원' },
+      { name: '1인세트', price: '11,900원' },
+      { name: '꾸~덕 로제떡볶이', price: '8,900원' },
+    ],
   },
 ];
+
+// Convert Supabase store to display format
+const toDisplayStore = (store: SupabaseStore, index: number): StoreDisplay => ({
+  id: store.id,
+  name: store.name,
+  rating: store.rating || 0,
+  reviewCount: 0,
+  deliveryTime: store.delivery_time || '30~45분',
+  deliveryTip: '3,000원',
+  distance: '1.0km',
+  minOrder: store.min_order ? `${store.min_order.toLocaleString()}원` : '10,000원',
+  tags: ['배민클럽'],
+  imageColor: ['#FF6B6B', '#4ECDC4', '#FFD93D', '#6C5CE7', '#A29BFE'][index % 5],
+  menuItems: [
+    { name: '대표메뉴 1', price: '10,000원' },
+    { name: '대표메뉴 2', price: '12,000원' },
+    { name: '대표메뉴 3', price: '8,000원' },
+  ],
+});
 
 // --- Components ---
 
 const Header = () => {
   const router = useRouter();
   return (
-    <HeaderContainer>
-      <HeaderLeft>
-        <IconButton onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="black" />
-        </IconButton>
-        <HeaderTitleContainer>
-          <HeaderTitle>음식배달</HeaderTitle>
-          <MaterialCommunityIcons name="silverware-fork-knife" size={18} color="#2AC1BC" style={{ marginLeft: 4 }} />
-        </HeaderTitleContainer>
-      </HeaderLeft>
-      <HeaderRight>
-        <IconGroup>
-          <IconButton>
-            <MaterialCommunityIcons name="ticket-percent-outline" size={26} color="#333" />
-          </IconButton>
-          <IconButton>
-            <Ionicons name="search" size={26} color="#333" />
-          </IconButton>
-          <IconButton>
-            <Ionicons name="cart-outline" size={26} color="#333" />
-          </IconButton>
-        </IconGroup>
-      </HeaderRight>
-    </HeaderContainer>
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff' }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity onPress={() => router.back()} style={{ padding: 8 }}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+          <Text style={{ fontSize: 18, fontWeight: '700', color: '#000' }}>음식배달</Text>
+          <Text style={{ fontSize: 20, marginLeft: 2 }}>🍴</Text>
+        </View>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        <TouchableOpacity style={{ padding: 8 }}>
+          <MaterialCommunityIcons name="percent-circle-outline" size={26} color={colors.primary} />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ padding: 8 }}>
+          <Ionicons name="search-outline" size={24} color="#000" />
+        </TouchableOpacity>
+        <TouchableOpacity style={{ padding: 8 }}>
+          <Ionicons name="cart-outline" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
-const StoreCard = ({ item }: { item: Store }) => {
+const StoreCard = ({ item }: { item: StoreDisplay }) => {
   const router = useRouter();
-
-  const menuItems = [
-    { name: '대표 메뉴', price: '15,000원' },
-    { name: '인기 메뉴', price: '12,000원' },
-    { name: '세트 메뉴', price: '20,000원' },
-    { name: '매운맛', price: '16,000원' },
-    { name: '로제 소스', price: '17,000원' },
-    { name: '모둠 튀김', price: '9,000원' },
-    { name: '순대', price: '4,500원' },
-    { name: '어묵탕', price: '10,000원' },
-  ];
 
   return (
     <CardContainer onPress={() => router.push(`/store/${item.id}`)}>
-      <ImageScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {menuItems.map((menu, index) => (
-          <MenuImage key={index} style={{ backgroundColor: item.imageColor, opacity: 1 - index * 0.05 }}>
-            <ImageOverlay>
-              <OverlayText>{menu.name}</OverlayText>
-              <OverlayPrice>{menu.price}</OverlayPrice>
-            </ImageOverlay>
-          </MenuImage>
-        ))}
-      </ImageScrollView>
-
-      {item.discountBadge && (
-        <DiscountBadge>
-          <Ionicons name="flash" size={12} color="white" style={{ marginRight: 4 }} />
-          <DiscountText>{item.discountBadge}</DiscountText>
-        </DiscountBadge>
-      )}
-
-      <InfoContainer>
-        <StoreNameRow>
-          <StoreName>{item.name}</StoreName>
-          <Ionicons name="star" size={14} color="#FFC107" style={{ marginLeft: 6, marginRight: 2 }} />
-          <RatingText>{item.rating}</RatingText>
-          <ReviewCount>({item.reviewCount})</ReviewCount>
-        </StoreNameRow>
-
-        <DetailsText>
-          <Ionicons name="time-outline" size={13} color="#666" /> {item.deliveryTime}  <Text style={{ color: '#ddd' }}>|</Text>  배달팁 {item.deliveryTip}  <Text style={{ color: '#ddd' }}>|</Text>  {item.distance}
-        </DetailsText>
-        <DetailsText>최소주문 {item.minOrder}</DetailsText>
-
-        <TagsRow>
-          {item.tags.map((tag, index) => (
-            <TagBadge key={index}>
-              {tag === '배민클럽' && <FontAwesome5 name="shipping-fast" size={10} color="#2AC1BC" style={{ marginRight: 4 }} />}
-              <TagText>{tag}</TagText>
-            </TagBadge>
+      {/* 메뉴 이미지 가로 스크롤 */}
+      <MenuImageWrapper>
+        <MenuImageRow horizontal showsHorizontalScrollIndicator={false}>
+          {item.menuItems.map((menu, idx) => (
+            <MenuImageBox key={idx}>
+              <MenuImagePlaceholder style={{ backgroundColor: item.imageColor }} />
+              <MenuOverlay>
+                <MenuOverlayName numberOfLines={1}>{menu.name}</MenuOverlayName>
+                <MenuOverlayPrice>{menu.price}</MenuOverlayPrice>
+              </MenuOverlay>
+            </MenuImageBox>
           ))}
-        </TagsRow>
-      </InfoContainer>
+        </MenuImageRow>
+
+        {/* 할인 배지 - 이미지 위에 겹치게 */}
+        {item.discountBadge && (
+          <DiscountBadge>
+            <Ionicons name="flash" size={12} color="#fff" />
+            <DiscountText>{item.discountBadge}</DiscountText>
+          </DiscountBadge>
+        )}
+      </MenuImageWrapper>
+
+      {/* 가게 정보 */}
+      <StoreInfoRow>
+        {item.storeIcon && (
+          <StoreIconBadge>
+            <Text style={{ fontSize: 14 }}>{item.storeIcon}</Text>
+          </StoreIconBadge>
+        )}
+        <StoreName numberOfLines={1}>{item.name}</StoreName>
+        <Ionicons name="star" size={14} color="#FFC107" style={{ marginLeft: 6 }} />
+        <RatingText>{item.rating}</RatingText>
+        <ReviewCount>({item.reviewCount})</ReviewCount>
+        {item.isAd && (
+          <AdBadge>
+            <AdText>광고</AdText>
+            <Ionicons name="information-circle-outline" size={12} color="#999" />
+          </AdBadge>
+        )}
+      </StoreInfoRow>
+
+      <DeliveryInfoRow>
+        <MaterialCommunityIcons name="bike-fast" size={14} color="#666" />
+        <DetailsText>{item.deliveryTime}</DetailsText>
+        <DetailsText style={{ marginLeft: 4 }}>{item.deliveryTip}</DetailsText>
+        <Ionicons name="location-outline" size={13} color="#666" style={{ marginLeft: 6 }} />
+        <DetailsText>{item.distance}</DetailsText>
+        <DetailsText style={{ marginLeft: 6 }}>최소주문 {item.minOrder}</DetailsText>
+      </DeliveryInfoRow>
+
+      {/* 태그 */}
+      <TagsRow>
+        {item.tags.map((tag, index) => (
+          <TagBadge key={index}>
+            {tag === '배민클럽' && <MaterialCommunityIcons name="truck-fast" size={12} color={colors.primary} style={{ marginRight: 3 }} />}
+            <TagText>{tag}</TagText>
+          </TagBadge>
+        ))}
+      </TagsRow>
     </CardContainer>
   );
 };
 
 export default function StoresListScreen() {
+  const { stores: supabaseStores, loading, error } = useStores();
+
+  // Use Supabase data if available, otherwise fallback to mock data
+  const displayStores: StoreDisplay[] = supabaseStores.length > 0
+    ? supabaseStores.map(toDisplayStore)
+    : MOCK_STORES;
+
   const renderHeader = () => (
     <View>
-      <AddressBar>
-        <AddressText>경남 김해시 주촌면 천곡로 26</AddressText>
-        <Ionicons name="caret-down" size={14} color="black" style={{ marginLeft: 4 }} />
-      </AddressBar>
+      {/* 주소 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Text style={{ fontSize: 16, fontWeight: '700', color: '#000' }}>경남 김해시 주촌면 천곡로 26</Text>
+        <Ionicons name="caret-down" size={14} color="#000" style={{ marginLeft: 4 }} />
+      </View>
 
-      <CategoryScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {CATEGORIES.map((cat, index) => (
-          <CategoryTab key={index} isSelected={index === 2}>
-            <CategoryText isSelected={index === 2}>{cat}</CategoryText>
-          </CategoryTab>
-        ))}
-        <MoreButton>
-          <SimpleLineIcons name="arrow-down" size={12} color="#666" />
-        </MoreButton>
-      </CategoryScrollView>
+      {/* 카테고리 탭 */}
+      <View style={{ borderBottomWidth: 1, borderBottomColor: '#eee' }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 8 }}
+        >
+          {CATEGORIES.map((cat, index) => {
+            const isSelected = index === 2;
+            return (
+              <TouchableOpacity
+                key={index}
+                style={{
+                  paddingVertical: 14,
+                  paddingHorizontal: 12,
+                  borderBottomWidth: 2,
+                  borderBottomColor: isSelected ? '#000' : 'transparent',
+                }}
+              >
+                <Text style={{
+                  fontSize: 15,
+                  fontWeight: isSelected ? '700' : '400',
+                  color: isSelected ? '#000' : '#999',
+                }}>{cat}</Text>
+              </TouchableOpacity>
+            );
+          })}
+          <TouchableOpacity style={{ paddingVertical: 14, paddingHorizontal: 8, justifyContent: 'center' }}>
+            <Ionicons name="chevron-down" size={16} color="#999" />
+          </TouchableOpacity>
+        </ScrollView>
+      </View>
 
-      <FilterScrollView horizontal showsHorizontalScrollIndicator={false}>
-        {FILTERS.map((filter, index) => (
-          <FilterChip key={index} isSelected={index === 0}>
-            {index === 1 && <View style={{ width: 16, height: 16, borderRadius: 8, backgroundColor: '#6F2B96', marginRight: 4, alignItems: 'center', justifyContent: 'center' }}><Text style={{ color: 'white', fontSize: 8 }}>%</Text></View>}
-            {index === 2 && <Ionicons name="flash" size={12} color="#333" style={{ marginRight: 4 }} />}
-            <FilterText isSelected={index === 0}>{filter}</FilterText>
-            {index === 3 && <Ionicons name="caret-down" size={10} color="#333" style={{ marginLeft: 4 }} />}
-          </FilterChip>
-        ))}
-      </FilterScrollView>
+      {/* 필터 칩 */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12, gap: 8 }}
+      >
+        {/* 기본순 */}
+        <TouchableOpacity style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 32,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          backgroundColor: '#000',
+        }}>
+          <Ionicons name="swap-vertical" size={14} color="#fff" style={{ marginRight: 4 }} />
+          <Text style={{ fontSize: 13, color: '#fff', fontWeight: '500' }}>기본순</Text>
+        </TouchableOpacity>
 
-      <SortBar>
-        <SortTextContainer>
-          <SortText>기본순</SortText>
-          <SimpleLineIcons name="question" size={11} color="#999" style={{ marginLeft: 4 }} />
-        </SortTextContainer>
-      </SortBar>
+        {/* 무료배달 */}
+        <TouchableOpacity style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 32,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#ddd',
+          backgroundColor: '#fff',
+        }}>
+          <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: '#6F2B96', marginRight: 6, alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ color: '#fff', fontSize: 10, fontWeight: '700' }}>%</Text>
+          </View>
+          <Text style={{ fontSize: 13, color: '#333', fontWeight: '500' }}>무료배달</Text>
+        </TouchableOpacity>
+
+        {/* 즉시할인·쿠폰 */}
+        <TouchableOpacity style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 32,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#ddd',
+          backgroundColor: '#fff',
+        }}>
+          <Ionicons name="flash" size={14} color="#333" style={{ marginRight: 4 }} />
+          <Text style={{ fontSize: 13, color: '#333', fontWeight: '500' }}>즉시할인·쿠폰</Text>
+        </TouchableOpacity>
+
+        {/* 배달·픽업 선택 */}
+        <TouchableOpacity style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          height: 32,
+          paddingHorizontal: 12,
+          borderRadius: 16,
+          borderWidth: 1,
+          borderColor: '#ddd',
+          backgroundColor: '#fff',
+        }}>
+          <Text style={{ fontSize: 13, color: '#333', fontWeight: '500' }}>배달·픽업 선택</Text>
+          <Ionicons name="chevron-down" size={12} color="#333" style={{ marginLeft: 4 }} />
+        </TouchableOpacity>
+      </ScrollView>
+
+      {/* 기본순 */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8 }}>
+        <Text style={{ fontSize: 13, color: '#666' }}>기본순</Text>
+        <Ionicons name="help-circle-outline" size={14} color="#ccc" style={{ marginLeft: 4 }} />
+      </View>
     </View>
   );
 
+  if (loading) {
+    return (
+      <SafeArea edges={['top']}>
+        <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+        <Header />
+        <LoadingContainer>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </LoadingContainer>
+      </SafeArea>
+    );
+  }
+
   return (
-    <SafeArea>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+    <SafeArea edges={['top']}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       <Header />
       <FlatList
-        data={STORES}
+        data={displayStores}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => <StoreCard item={item} />}
         ListHeaderComponent={renderHeader}
@@ -213,17 +366,22 @@ export default function StoresListScreen() {
 
 // --- Styles ---
 
-const SafeArea = styled.SafeAreaView`
+const SafeArea = styled(SafeAreaView)`
   flex: 1;
-  background-color: #fff;
-  padding-top: ${Platform.OS === 'android' ? StatusBar.currentHeight : 0}px;
+  background-color: ${colors.background};
+`;
+
+const LoadingContainer = styled.View`
+  flex: 1;
+  justify-content: center;
+  align-items: center;
 `;
 
 const HeaderContainer = styled.View`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
-  padding: 10px 8px 10px 16px;
+  padding: 8px 12px;
   background-color: #fff;
 `;
 
@@ -240,7 +398,7 @@ const HeaderTitleContainer = styled.View`
 
 const HeaderTitle = styled.Text`
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
   color: #000;
 `;
 
@@ -249,202 +407,228 @@ const HeaderRight = styled.View`
   align-items: center;
 `;
 
-const IconGroup = styled.View`
-  flex-direction: row;
-  align-items: center;
-`;
-
 const IconButton = styled.TouchableOpacity`
-  padding: 8px;
+  padding: 6px;
 `;
 
 const AddressBar = styled.TouchableOpacity`
   flex-direction: row;
   align-items: center;
-  padding: 4px 16px 12px 16px;
-  background-color: #fff;
+  padding: ${spacing.xs}px ${spacing.lg}px ${spacing.md}px ${spacing.lg}px;
+  background-color: ${colors.background};
 `;
 
 const AddressText = styled.Text`
-  font-size: 16px;
-  font-weight: 700;
-  color: #000;
+  font-size: ${fontSize.lg}px;
+  font-weight: ${fontWeight.bold};
+  color: ${colors.textPrimary};
 `;
 
 const CategoryScrollView = styled.ScrollView`
-  padding: 0 8px;
+  padding: 0 ${spacing.sm}px;
   border-bottom-width: 1px;
-  border-bottom-color: #f0f0f0;
+  border-bottom-color: ${colors.backgroundTertiary};
   max-height: 50px;
 `;
 
 const CategoryTab = styled.TouchableOpacity<{ isSelected?: boolean }>`
-  padding: 12px 14px;
+  padding: ${spacing.md}px 14px;
   border-bottom-width: 2px;
-  border-bottom-color: ${(props) => (props.isSelected ? '#333' : 'transparent')};
-  margin-right: 4px;
+  border-bottom-color: ${(props) => (props.isSelected ? colors.textSecondary : 'transparent')};
+  margin-right: ${spacing.xs}px;
 `;
 
 const CategoryText = styled.Text<{ isSelected?: boolean }>`
   font-size: 15px;
-  color: ${(props) => (props.isSelected ? '#000' : '#888')};
-  font-weight: ${(props) => (props.isSelected ? '700' : '500')};
+  color: ${(props) => (props.isSelected ? colors.textPrimary : colors.textDisabled)};
+  font-weight: ${(props) => (props.isSelected ? fontWeight.bold : fontWeight.medium)};
 `;
 
 const MoreButton = styled.TouchableOpacity`
-  padding: 12px 14px;
+  padding: ${spacing.md}px 14px;
   justify-content: center;
   align-items: center;
 `;
 
 const FilterScrollView = styled.ScrollView`
-  padding: 12px 16px;
+  padding: ${spacing.md}px ${spacing.lg}px;
 `;
 
 const FilterChip = styled.TouchableOpacity<{ isSelected?: boolean }>`
   flex-direction: row;
   align-items: center;
   height: 32px;
-  padding: 0 12px;
-  border-radius: 16px;
+  padding: 0 ${spacing.md}px;
+  border-radius: ${borderRadius.xl}px;
   border-width: 1px;
-  border-color: ${(props) => (props.isSelected ? '#333' : '#eee')};
-  background-color: ${(props) => (props.isSelected ? '#333' : '#fff')};
-  margin-right: 8px;
-  elevation: 1;
-  shadow-color: #000;
-  shadow-offset: 0px 1px;
-  shadow-opacity: 0.1;
-  shadow-radius: 1px;
+  border-color: ${(props) => (props.isSelected ? colors.textSecondary : colors.border)};
+  background-color: ${(props) => (props.isSelected ? colors.textSecondary : colors.background)};
+  margin-right: ${spacing.sm}px;
 `;
 
 const FilterText = styled.Text<{ isSelected?: boolean }>`
   font-size: 13px;
-  color: ${(props) => (props.isSelected ? '#fff' : '#333')};
-  font-weight: 500;
+  color: ${(props) => (props.isSelected ? colors.textInverse : colors.textSecondary)};
+  font-weight: ${fontWeight.medium};
 `;
 
 const SortBar = styled.View`
   flex-direction: row;
   align-items: center;
-  padding: 8px 16px;
-  margin-bottom: 8px;
+  padding: ${spacing.sm}px ${spacing.lg}px;
+  margin-bottom: ${spacing.sm}px;
 `;
 
 const SortTextContainer = styled.View`
-    flex-direction: row;
-    align-items: center;
+  flex-direction: row;
+  align-items: center;
 `;
 
 const SortText = styled.Text`
-  font-size: 12px;
-  color: #333;
+  font-size: ${fontSize.sm}px;
+  color: ${colors.textSecondary};
 `;
 
 // --- Store Card Styles ---
 
 const CardContainer = styled.TouchableOpacity`
-  padding: 0 16px;
-  margin-bottom: 32px;
+  padding: 16px;
+  border-bottom-width: 8px;
+  border-bottom-color: #f5f5f5;
 `;
 
-const ImageScrollView = styled.ScrollView`
+const MenuImageWrapper = styled.View`
+  position: relative;
   margin-bottom: 12px;
 `;
 
-const MenuImage = styled.View`
-  width: 150px;
-  height: 160px;
-  justify-content: flex-end;
+const MenuImageRow = styled.ScrollView``;
+
+const MenuImageBox = styled.View`
+  width: 140px;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-right: 6px;
+  position: relative;
+`;
+
+const MenuImagePlaceholder = styled.View`
+  width: 100%;
+  height: 100%;
+  background-color: #ddd;
+`;
+
+const MenuOverlay = styled.View`
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
   padding: 10px;
-  border-radius: 12px;
-  margin-right: 8px;
+  background-color: rgba(0, 0, 0, 0.35);
 `;
 
-const ImageOverlay = styled.View`
-`;
-
-const OverlayText = styled.Text`
-  color: white;
+const MenuOverlayName = styled.Text`
   font-size: 12px;
-  font-weight: 600;
-  text-shadow: 0px 1px 4px rgba(0,0,0,0.5);
+  color: #fff;
+  font-weight: 500;
   margin-bottom: 2px;
 `;
 
-const OverlayPrice = styled.Text`
-  color: white;
+const MenuOverlayPrice = styled.Text`
   font-size: 14px;
+  color: #fff;
   font-weight: 700;
-  text-shadow: 0px 1px 4px rgba(0,0,0,0.5);
 `;
 
 const DiscountBadge = styled.View`
-  background-color: #2AC1BC; 
-  align-self: flex-start;
-  padding: 4px 6px;
-  border-radius: 4px;
-  margin-bottom: 8px;
+  position: absolute;
+  bottom: 8px;
+  left: 0;
   flex-direction: row;
   align-items: center;
-  margin-top: -24px; 
-  margin-left: 10px;
-  position: relative;
-  shadow-color: #000;
-  shadow-offset: 0px 2px;
-  shadow-opacity: 0.2;
-  shadow-radius: 2px;
-  elevation: 3;
+  background-color: ${colors.primary};
+  padding: 6px 12px;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
 `;
 
 const DiscountText = styled.Text`
-  color: white;
-  font-size: 11px;
+  color: #fff;
+  font-size: 12px;
   font-weight: 700;
+  margin-left: 4px;
 `;
 
-const InfoContainer = styled.View`
-`;
-
-const StoreNameRow = styled.View`
+const StoreInfoRow = styled.View`
   flex-direction: row;
   align-items: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+`;
+
+const StoreIconBadge = styled.View`
+  width: 28px;
+  height: 28px;
+  border-radius: 14px;
+  background-color: #f5f5f5;
+  justify-content: center;
+  align-items: center;
+  margin-right: 6px;
 `;
 
 const StoreName = styled.Text`
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   color: #000;
+  flex-shrink: 1;
 `;
 
 const RatingText = styled.Text`
   font-size: 14px;
   font-weight: 700;
   color: #000;
-  margin-right: 2px;
+  margin-left: 3px;
 `;
 
 const ReviewCount = styled.Text`
   font-size: 14px;
-  color: #888;
+  color: #999;
+  margin-left: 1px;
+`;
+
+const AdBadge = styled.View`
+  flex-direction: row;
+  align-items: center;
+  margin-left: auto;
+`;
+
+const AdText = styled.Text`
+  font-size: 12px;
+  color: #999;
+  margin-right: 2px;
+`;
+
+const DeliveryInfoRow = styled.View`
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 6px;
 `;
 
 const DetailsText = styled.Text`
-  font-size: 14px;
-  color: #555;
-  margin-bottom: 2px;
-  line-height: 20px;
+  font-size: 13px;
+  color: #666;
 `;
 
 const TagsRow = styled.View`
   flex-direction: row;
-  margin-top: 6px;
+  margin-top: 4px;
 `;
 
 const TagBadge = styled.View`
-  background-color: #f6f6f6;
-  padding: 4px 6px;
+  background-color: #f5f5f5;
+  padding: 4px 8px;
   border-radius: 4px;
   margin-right: 6px;
   flex-direction: row;
@@ -452,7 +636,7 @@ const TagBadge = styled.View`
 `;
 
 const TagText = styled.Text`
-  font-size: 11px;
+  font-size: 12px;
   color: #666;
   font-weight: 500;
 `;
